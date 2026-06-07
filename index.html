@@ -181,12 +181,11 @@
       <div class="logo"><span>AV</span></div>
       <div>
         <h1>AVA <em>Consultant</em></h1>
-        <div class="tag">Repository-Driven AV Architecture · Powered by Claude</div>
+        <div class="tag">Enterprise AV Architecture · Powered by CX Solutions</div>
       </div>
     </div>
     <p class="lead">Enter the room brief. AVA designs a standards-based, AVIXA-validated AV
-      solution from your proven reference repository and produces a structured Bill of
-      Materials you can export to Excel.</p>
+      solution and produces a structured Bill of Materials you can export to Excel.</p>
   </header>
 
   <!-- ============ INPUT FORM ============ -->
@@ -256,7 +255,7 @@
 
   <footer>
     <span>AVA CONSULTANT · v1.0</span>
-    <span id="modelTag">CLAUDE · REPOSITORY-FIRST</span>
+    <span id="modelTag">CX Solutions — AV Engineering</span>
   </footer>
 </div>
 
@@ -349,7 +348,6 @@ function render(d, p){
 
   let html = `<div class="res-head reveal" ${dl()}>
       <h2>${esc(es.roomType||p.roomType)} — Recommended Design</h2>
-      ${d.repositoryReferenceUsed?`<span class="ref-chip">REF · ${esc(d.repositoryReferenceUsed)}</span>`:""}
     </div>`;
 
   // 1 Executive summary
@@ -390,6 +388,29 @@ function render(d, p){
       <button class="btn btn-xls" id="dl">⬇ Download Excel (.xlsx)</button>
     </div>
   </div>`;
+
+  // 4·1 Thermal load (BTU/hr) — computed deterministically from per-item watts
+  const t = thermal(bom);
+  if (t.totalW > 0) {
+    const rows = Object.entries(t.byCat).sort((a,b)=>b[1]-a[1])
+      .map(([c,w])=>`<tr><td>${esc(c)}</td><td class="qty" style="color:var(--ink)">${fmt(w)}</td><td class="qty" style="color:var(--amber)">${fmt(w*3.412)}</td></tr>`).join("");
+    html += `<div class="card block reveal" ${dl()}>
+      <div class="blabel"><span class="n">⚡</span> Thermal Load — Heat Dissipation (BTU/hr)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch">
+        <div style="flex:1;min-width:210px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:9px;padding:16px 18px">
+          <div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-faint)">Total Heat Load</div>
+          <div style="font-family:var(--disp);font-weight:800;font-size:34px;color:var(--amber);line-height:1.05;margin-top:6px">${fmt(t.totalBTU)} <span style="font-size:15px;color:var(--ink-dim);font-weight:600">BTU/hr</span></div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--ink-dim);margin-top:9px">${fmt(t.totalW)} W operating load</div>
+          <div style="font-family:var(--mono);font-size:12px;color:var(--ink-dim);margin-top:3px">≈ ${(t.totalBTU/12000).toFixed(1)} ton of cooling (÷ 12,000)</div>
+        </div>
+        <div style="flex:1.5;min-width:270px" class="bomwrap">
+          <table><thead><tr><th>Category</th><th style="text-align:center">Power (W)</th><th style="text-align:center">Heat (BTU/hr)</th></tr></thead>
+          <tbody>${rows}<tr style="border-top:1px solid var(--line)"><td style="font-family:var(--mono);color:var(--ink)">TOTAL</td><td class="qty" style="color:var(--ink)">${fmt(t.totalW)}</td><td class="qty">${fmt(t.totalBTU)}</td></tr></tbody></table>
+        </div>
+      </div>
+      <div class="prose" style="margin-top:12px;font-size:12.5px;color:var(--ink-faint)">Heat load = total operating wattage × 3.412. Power draw is estimated from typical manufacturer figures per device; passive items (cabling, mounts, passive loudspeakers, racks) are excluded. Use for HVAC coordination and validate against final cut sheets.</div>
+    </div>`;
+  }
 
   // 5 Risks
   const rpairs=[["Power",rk.power],["Network",rk.network],["Rack Space",rk.rackSpace],["Acoustics",rk.acoustics],["Structural",rk.structural],["Mounting",rk.mounting]];
@@ -434,6 +455,17 @@ function bomRows(bom){
   });
   return out||`<tr><td colspan="5" style="color:var(--ink-faint)">No items returned.</td></tr>`;
 }
+
+// ---------- thermal load: sum watts, convert to BTU/hr with the 3.412 multiplier ----------
+function thermal(bom){
+  const byCat={}; let totalW=0;
+  (bom||[]).forEach(it=>{
+    const w=(Number(it.watts)||0)*(Number(it.qty)||0);
+    if(w>0){ const c=it.category||"Other"; byCat[c]=(byCat[c]||0)+w; totalW+=w; }
+  });
+  return { byCat, totalW, totalBTU: totalW*3.412 };
+}
+const fmt = n => Math.round(n).toLocaleString();
 
 // ---------- Excel export (exact headers: Product description | Make | Model | Qty | Remark) ----------
 function exportXlsx(d, p){
