@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AVA Consultant — AV Design & Bill of Materials</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<!-- SheetJS for in-browser Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#11171f; --panel:#161d27; --panel2:#1b232f;
+    --line:#283342; --line2:#33415480;
+    --ink:#e7edf3; --ink-dim:#9fb0c3; --ink-faint:#6b7d92;
+    --amber:#f0a23a; --amber-dim:#c47e22; --cyan:#37c0c8; --good:#5fb87a; --bad:#e2615b;
+    --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --sans:"IBM Plex Sans",system-ui,sans-serif;
+    --disp:"Bricolage Grotesque",system-ui,sans-serif;
+    --r:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(var(--line2) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line2) 1px,transparent 1px);
+    background-size:46px 46px; background-position:-1px -1px;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(1200px 600px at 80% -10%, #f0a23a14, transparent 60%),
+               radial-gradient(900px 500px at -10% 110%, #37c0c810, transparent 60%);
+  }
+  .wrap{position:relative; z-index:1; max-width:1180px; margin:0 auto; padding:0 22px 90px}
+
+  /* ---------- Header ---------- */
+  header{padding:42px 0 26px; border-bottom:1px solid var(--line)}
+  .brand{display:flex; align-items:center; gap:16px}
+  .logo{
+    width:46px; height:46px; flex:none; border-radius:11px;
+    background:linear-gradient(150deg,#1d2734,#0f151d);
+    border:1px solid var(--line); display:grid; place-items:center;
+    box-shadow:inset 0 1px 0 #ffffff10, 0 6px 18px #0006;
+  }
+  .logo span{font-family:var(--disp); font-weight:800; font-size:22px;
+    background:linear-gradient(180deg,var(--amber),var(--amber-dim));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  h1{font-family:var(--disp); font-weight:800; letter-spacing:-.5px;
+    font-size:clamp(28px,4vw,40px); margin:0; line-height:1.02}
+  h1 em{font-style:normal; color:var(--amber)}
+  .tag{font-family:var(--mono); font-size:12px; color:var(--ink-faint);
+    text-transform:uppercase; letter-spacing:2.5px; margin-top:6px}
+  .lead{color:var(--ink-dim); max-width:680px; margin:16px 0 0; font-size:15px}
+
+  /* ---------- Form ---------- */
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));
+    border:1px solid var(--line); border-radius:var(--r); padding:22px 22px 24px;
+    box-shadow:0 10px 30px #0004}
+  .section-title{font-family:var(--mono); font-size:11px; letter-spacing:2.5px;
+    text-transform:uppercase; color:var(--amber); margin:26px 0 14px;
+    display:flex; align-items:center; gap:10px}
+  .section-title::before{content:""; width:7px; height:7px; background:var(--amber);
+    transform:rotate(45deg); box-shadow:0 0 10px var(--amber)}
+  .section-title.first{margin-top:30px}
+
+  .grid{display:grid; gap:14px 16px; grid-template-columns:repeat(4,1fr)}
+  .f{display:flex; flex-direction:column; gap:6px}
+  .f.col2{grid-column:span 2} .f.col4{grid-column:span 4}
+  label{font-family:var(--mono); font-size:11px; letter-spacing:.6px;
+    color:var(--ink-dim); text-transform:uppercase}
+  label .opt{color:var(--ink-faint); text-transform:none; letter-spacing:0}
+  input,select,textarea{
+    width:100%; background:var(--bg); color:var(--ink);
+    border:1px solid var(--line); border-radius:8px; padding:10px 11px;
+    font-family:var(--sans); font-size:14px; transition:border-color .15s, box-shadow .15s}
+  textarea{resize:vertical; min-height:64px}
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--amber);
+    box-shadow:0 0 0 3px #f0a23a22}
+  select{appearance:none; cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--ink-faint) 50%),
+      linear-gradient(135deg,var(--ink-faint) 50%,transparent 50%);
+    background-position:calc(100% - 17px) calc(50% - 2px),calc(100% - 12px) calc(50% - 2px);
+    background-size:5px 5px,5px 5px; background-repeat:no-repeat; padding-right:34px}
+  .dims{display:grid; grid-template-columns:1fr 1fr 1fr .8fr; gap:8px}
+
+  .actions{display:flex; align-items:center; gap:14px; margin-top:26px; flex-wrap:wrap}
+  .btn{font-family:var(--disp); font-weight:700; font-size:15px; letter-spacing:.2px;
+    border:none; border-radius:9px; padding:13px 24px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:9px; transition:transform .12s, filter .15s}
+  .btn:active{transform:translateY(1px)}
+  .btn-primary{color:#1a1206; background:linear-gradient(180deg,#f4ad48,var(--amber-dim));
+    box-shadow:0 6px 16px #f0a23a33, inset 0 1px 0 #fff6}
+  .btn-primary:hover{filter:brightness(1.06)}
+  .btn-primary:disabled{filter:grayscale(.6) brightness(.7); cursor:not-allowed; box-shadow:none}
+  .btn-ghost{color:var(--ink); background:var(--panel2); border:1px solid var(--line)}
+  .btn-ghost:hover{border-color:var(--ink-faint)}
+  .btn-xls{color:#072014; background:linear-gradient(180deg,#6fce8c,#3f9a5d);
+    box-shadow:0 6px 16px #5fb87a33, inset 0 1px 0 #fff6}
+  .btn-xls:hover{filter:brightness(1.06)}
+  .hint{font-family:var(--mono); font-size:11px; color:var(--ink-faint)}
+
+  /* ---------- Loading ---------- */
+  #loading{display:none; margin-top:28px}
+  .loadbar{height:3px; background:var(--line); border-radius:3px; overflow:hidden}
+  .loadbar i{display:block; height:100%; width:35%;
+    background:linear-gradient(90deg,transparent,var(--amber),transparent);
+    animation:sweep 1.25s ease-in-out infinite}
+  @keyframes sweep{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}
+  .loadmsg{font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); margin-top:12px}
+  .loadmsg b{color:var(--amber)}
+
+  /* ---------- Results ---------- */
+  #results{display:none; margin-top:34px}
+  .reveal{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes rise{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
+  .res-head{display:flex; align-items:flex-end; justify-content:space-between;
+    gap:18px; flex-wrap:wrap; margin-bottom:6px}
+  .res-head h2{font-family:var(--disp); font-weight:800; font-size:26px; margin:0; letter-spacing:-.4px}
+  .ref-chip{font-family:var(--mono); font-size:11px; color:var(--cyan);
+    border:1px solid #37c0c855; background:#37c0c810; padding:6px 11px; border-radius:30px}
+
+  .block{margin-top:18px}
+  .blabel{font-family:var(--mono); font-size:11px; letter-spacing:2.5px; text-transform:uppercase;
+    color:var(--amber); margin:0 0 10px; display:flex; align-items:center; gap:9px}
+  .blabel .n{color:var(--ink-faint); font-size:11px}
+  .kv{display:grid; grid-template-columns:repeat(2,1fr); gap:10px}
+  .kv .item{background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:12px 14px}
+  .kv .item .k{font-family:var(--mono); font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; color:var(--ink-faint)}
+  .kv .item .v{font-size:14px; color:var(--ink); margin-top:4px}
+  .prose{background:var(--panel); border:1px solid var(--line); border-radius:9px; padding:14px 16px; font-size:14.5px; color:var(--ink-dim)}
+  .prose.amber{border-left:3px solid var(--amber)}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{font-family:var(--mono); font-size:12px; background:var(--panel2);
+    border:1px solid var(--line); border-radius:7px; padding:6px 10px; color:var(--ink)}
+
+  /* BOM table */
+  .bomwrap{border:1px solid var(--line); border-radius:10px; overflow:auto; background:var(--panel)}
+  table{border-collapse:collapse; width:100%; min-width:720px; font-size:13.5px}
+  thead th{position:sticky; top:0; background:var(--panel2); text-align:left;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase;
+    color:var(--ink-dim); padding:11px 13px; border-bottom:1px solid var(--line); white-space:nowrap}
+  tbody td{padding:10px 13px; border-bottom:1px solid var(--line2); vertical-align:top; color:var(--ink)}
+  tbody tr:hover td{background:#ffffff06}
+  td.model,td.make{font-family:var(--mono); font-size:12.5px; color:var(--ink-dim); white-space:nowrap}
+  td.qty{text-align:center; font-family:var(--mono); font-weight:600; color:var(--amber); width:48px}
+  td.rmk{color:var(--ink-faint); font-size:12.5px}
+  tr.cat td{background:#0e1b1c; color:var(--cyan); font-family:var(--mono);
+    font-size:10.5px; letter-spacing:1.6px; text-transform:uppercase; padding:9px 13px;
+    border-top:1px solid var(--line)}
+
+  .bomfoot{display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:12px; margin-top:14px}
+  .bomcount{font-family:var(--mono); font-size:12px; color:var(--ink-faint)}
+
+  /* error */
+  .err{display:none; margin-top:24px; border:1px solid #e2615b55; background:#e2615b12;
+    border-radius:9px; padding:15px 17px; color:#f4b3af; font-size:14px}
+  .err b{color:#ffd9d6}
+  .err pre{white-space:pre-wrap; font-family:var(--mono); font-size:11.5px; color:#e9a9a5; margin:8px 0 0}
+
+  footer{margin-top:46px; padding-top:20px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; color:var(--ink-faint); display:flex;
+    justify-content:space-between; flex-wrap:wrap; gap:8px}
+
+  @media(max-width:820px){
+    .grid{grid-template-columns:repeat(2,1fr)} .f.col2{grid-column:span 2} .f.col4{grid-column:span 2}
+    .kv{grid-template-columns:1fr}
+  }
+  @media(max-width:520px){ .grid{grid-template-columns:1fr} .f.col2,.f.col4{grid-column:span 1} .dims{grid-template-columns:1fr 1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="logo"><span>AV</span></div>
+      <div>
+        <h1>AVA <em>Consultant</em></h1>
+        <div class="tag">Repository-Driven AV Architecture · Powered by Claude</div>
+      </div>
+    </div>
+    <p class="lead">Enter the room brief. AVA designs a standards-based, AVIXA-validated AV
+      solution from your proven reference repository and produces a structured Bill of
+      Materials you can export to Excel.</p>
+  </header>
+
+  <!-- ============ INPUT FORM ============ -->
+  <div class="card" style="margin-top:26px">
+    <div class="section-title first">Room Definition</div>
+    <div class="grid">
+      <div class="f col2">
+        <label for="roomType">Room Type</label>
+        <select id="roomType"></select>
+      </div>
+      <div class="f col2">
+        <label for="capacity">Seating Capacity</label>
+        <input id="capacity" type="number" min="1" placeholder="e.g. 12" />
+      </div>
+      <div class="f col2">
+        <label>Room Dimensions <span class="opt">(L × W × H)</span></label>
+        <div class="dims">
+          <input id="length" type="number" step="0.1" placeholder="L" />
+          <input id="width"  type="number" step="0.1" placeholder="W" />
+          <input id="height" type="number" step="0.1" placeholder="H" />
+          <select id="units"><option value="m">metres</option><option value="ft">feet</option></select>
+        </div>
+      </div>
+      <div class="f">
+        <label for="platform">Platform</label>
+        <select id="platform"></select>
+      </div>
+      <div class="f">
+        <label for="ceiling">Ceiling Type</label>
+        <select id="ceiling"></select>
+      </div>
+      <div class="f col4">
+        <label for="budget">Budget Category</label>
+        <select id="budget"></select>
+      </div>
+    </div>
+
+    <div class="section-title">Design Strategy <span style="color:var(--ink-faint);text-transform:none;letter-spacing:0;font-size:11px">— leave on “Auto” to let AVA recommend &amp; justify</span></div>
+    <div class="grid">
+      <div class="f col2"><label for="display">Display Strategy</label><select id="display"></select></div>
+      <div class="f col2"><label for="audio">Audio Capture Strategy</label><select id="audio"></select></div>
+      <div class="f col2"><label for="camera">Camera Strategy</label><select id="camera"></select></div>
+      <div class="f col2"><label for="switching">Switching Strategy</label><select id="switching"></select></div>
+      <div class="f col2"><label for="dsp">DSP Architecture</label><select id="dsp"></select></div>
+      <div class="f col2"><label for="scalability">Future Scalability</label><input id="scalability" placeholder="e.g. add overflow room, scale to dual-PTZ" /></div>
+      <div class="f col4"><label for="notes">Additional Notes / Special Requirements <span class="opt">(optional)</span></label><textarea id="notes" placeholder="e.g. existing 98&quot; display to be reused; glass walls; 24/7 operation; ADA / hearing-loop required…"></textarea></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="go">▷ Generate AV Design</button>
+      <button class="btn btn-ghost" id="sample">Load example brief</button>
+      <span class="hint" id="hint">Tip: only Room Type, Capacity, Platform &amp; Budget are needed to start.</span>
+    </div>
+
+    <!-- loading -->
+    <div id="loading">
+      <div class="loadbar"><i></i></div>
+      <div class="loadmsg" id="loadmsg"><b>AVA is reviewing the repository…</b> matching the closest reference design.</div>
+    </div>
+  </div>
+
+  <!-- ============ ERROR ============ -->
+  <div class="err" id="err"></div>
+
+  <!-- ============ RESULTS ============ -->
+  <div id="results"></div>
+
+  <footer>
+    <span>AVA CONSULTANT · v1.0</span>
+    <span id="modelTag">CLAUDE · REPOSITORY-FIRST</span>
+  </footer>
+</div>
+
+<script>
+// ---------- option lists (from the AVA Consultant brief) ----------
+const OPTS = {
+  roomType:["Boardroom","Meeting Room","Large Conference Room","Training Room","Town Hall","Auditorium","Innovation Space","Client Experience Center","Multipurpose Room","Operations Center","Executive Briefing Center","Command Center"],
+  platform:["Microsoft Teams","Cisco Webex","Zoom","Google Meet","BYOM","Hybrid Platform"],
+  ceiling:["Open Ceiling","Gypsum Ceiling","Acoustic Ceiling","Grided Tile Ceiling","Exposed Services Ceiling"],
+  budget:["Entry Level","Standard Enterprise","Premium Enterprise","Executive","Innovation / Flagship"],
+  display:["Single Display","Dual Display","LED Wall","Projection","Interactive Display"],
+  audio:["Integrated Audio","Table Microphones","Ceiling Microphones","Hybrid Audio","Wireless Microphones","Antenna Distribution Systems"],
+  camera:["Room Bar","PTZ","Dual PTZ","Cross View","SpeakerTrack","Seervision","Document Camera"],
+  switching:["Direct Connect","Crestron NVX","Extron NAV","Q-SYS VisionSuite","Fiber Backbone","Cat6 Tx & Rx"],
+  dsp:["QSC Core Nano","QSC Core 8 Flex","QSC Core 110f","QSC Core 510i","Biamp TesiraFORTÉ","Biamp Server IO","Bose DSP"]
+};
+const REQUIRED = ["roomType","platform","budget"];        // selects that need a real value
+const AUTO_FIELDS = ["display","audio","camera","switching","dsp"]; // get an Auto option
+function fill(id, list, auto){
+  const s=document.getElementById(id);
+  if(auto) s.appendChild(new Option("◆ Auto — let AVA recommend",""));
+  else s.appendChild(new Option("Select…",""));
+  list.forEach(v=>s.appendChild(new Option(v,v)));
+}
+Object.keys(OPTS).forEach(id=>fill(id,OPTS[id],AUTO_FIELDS.includes(id)));
+
+// ---------- loading messages ----------
+const LOAD=["matching the closest reference design.","applying repository equipment standards.","validating against AVIXA principles.","sizing displays, audio coverage &amp; camera framing.","compiling the structured Bill of Materials."];
+let li=0,timer=null;
+function startLoad(){li=0;document.getElementById("loading").style.display="block";
+  timer=setInterval(()=>{li=(li+1)%LOAD.length;
+    document.getElementById("loadmsg").innerHTML="<b>AVA is working…</b> "+LOAD[li];},2600);}
+function stopLoad(){clearInterval(timer);document.getElementById("loading").style.display="none";}
+
+// ---------- example brief ----------
+document.getElementById("sample").onclick=()=>{
+  set("roomType","Large Conference Room"); set("capacity",20);
+  set("length",9); set("width",6); set("height",3); set("units","m");
+  set("platform","Microsoft Teams"); set("ceiling","Acoustic Ceiling");
+  set("budget","Premium Enterprise");
+  ["display","audio","camera","switching","dsp"].forEach(f=>set(f,""));
+  set("scalability","Allow future overflow room + recording");
+  set("notes","Glass wall on one side; needs strong intelligibility for hybrid calls.");
+};
+function set(id,v){document.getElementById(id).value=v;}
+function get(id){return document.getElementById(id).value;}
+
+// ---------- generate ----------
+let LAST=null;
+document.getElementById("go").onclick=async()=>{
+  const err=document.getElementById("err"); err.style.display="none";
+  const missing=REQUIRED.filter(id=>!get(id));
+  if(missing.length){ showErr("Please select: "+missing.map(m=>label(m)).join(", ")+"."); return; }
+
+  const payload={
+    roomType:get("roomType"), capacity:get("capacity"),
+    length:get("length"), width:get("width"), height:get("height"), units:get("units"),
+    platform:get("platform"), ceiling:get("ceiling"), budget:get("budget"),
+    display:get("display"), audio:get("audio"), camera:get("camera"),
+    switching:get("switching"), dsp:get("dsp"),
+    scalability:get("scalability"), notes:get("notes")
+  };
+
+  const btn=document.getElementById("go"); btn.disabled=true;
+  document.getElementById("results").style.display="none"; startLoad();
+
+  try{
+    const r=await fetch("/api/design",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const j=await r.json();
+    stopLoad(); btn.disabled=false;
+    if(j.error){ showErr(j.error, j.detail||j.rawText); return; }
+    LAST=j.design; render(j.design, payload);
+  }catch(e){ stopLoad(); btn.disabled=false; showErr("Could not reach the design service.", String(e)); }
+};
+function label(id){return ({roomType:"Room Type",platform:"Platform",budget:"Budget Category"})[id]||id;}
+function showErr(msg,detail){
+  const err=document.getElementById("err");
+  err.innerHTML="<b>"+esc(msg)+"</b>"+(detail?("<pre>"+esc(typeof detail==='string'?detail:JSON.stringify(detail,null,2)).slice(0,1500)+"</pre>"):"");
+  err.style.display="block"; err.scrollIntoView({behavior:"smooth",block:"center"});
+}
+function esc(s){return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+// ---------- render results ----------
+function render(d, p){
+  const R=document.getElementById("results");
+  const es=d.executiveSummary||{}, rd=d.recommendedDesign||{}, av=d.avixaJustification||{},
+        rk=d.risksAndDependencies||{}, fs=d.futureScalability||{}, bom=d.billOfMaterials||[];
+
+  let delay=0; const dl=()=>`style="animation-delay:${(delay+=70)}ms"`;
+
+  let html = `<div class="res-head reveal" ${dl()}>
+      <h2>${esc(es.roomType||p.roomType)} — Recommended Design</h2>
+      ${d.repositoryReferenceUsed?`<span class="ref-chip">REF · ${esc(d.repositoryReferenceUsed)}</span>`:""}
+    </div>`;
+
+  // 1 Executive summary
+  html += `<div class="card block reveal" ${dl()}>
+    <div class="blabel"><span class="n">01</span> Executive Summary</div>
+    <div class="kv">
+      <div class="item"><div class="k">Recommended Architecture</div><div class="v">${esc(es.recommendedArchitecture)}</div></div>
+      <div class="item"><div class="k">Room Type</div><div class="v">${esc(es.roomType||p.roomType)}</div></div>
+    </div>
+    <div style="margin-top:12px"><div class="k" style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">Key Technologies</div>
+      <div class="chips">${(es.keyTechnologies||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div></div>
+    <div style="margin-top:14px"><div class="k" style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px">Primary Design Drivers</div>
+      <div class="chips">${(es.primaryDesignDrivers||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join("")}</div></div>
+  </div>`;
+
+  // 2 Recommended design
+  const dpairs=[["Display",rd.displayStrategy],["Audio",rd.audioStrategy],["Camera",rd.cameraStrategy],["Switching",rd.switchingStrategy],["DSP",rd.dspStrategy],["Control",rd.controlStrategy],["Network",rd.networkStrategy]];
+  html += `<div class="card block reveal" ${dl()}>
+    <div class="blabel"><span class="n">02</span> Recommended AV Design</div>
+    <div class="kv">${dpairs.map(([k,v])=>`<div class="item"><div class="k">${k} Strategy</div><div class="v">${esc(v)}</div></div>`).join("")}</div>
+  </div>`;
+
+  // 3 AVIXA
+  const apairs=[["Display Visibility",av.displayVisibility],["Audio Coverage",av.audioCoverage],["Camera Coverage",av.cameraCoverage],["Content Distribution",av.contentDistribution],["Scalability",av.scalability]];
+  html += `<div class="card block reveal" ${dl()}>
+    <div class="blabel"><span class="n">03</span> AVIXA Design Justification</div>
+    ${apairs.map(([k,v])=>`<div class="item" style="margin-bottom:9px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 13px"><div class="k" style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--amber)">${k}</div><div class="v" style="margin-top:4px;color:var(--ink-dim)">${esc(v)}</div></div>`).join("")}
+  </div>`;
+
+  // 4 BOM
+  html += `<div class="card block reveal" ${dl()}>
+    <div class="blabel"><span class="n">04</span> Structured Bill of Materials</div>
+    <div class="bomwrap"><table><thead><tr>
+      <th>Product Description</th><th>Make</th><th>Model</th><th>Qty</th><th>Remark</th>
+    </tr></thead><tbody>${bomRows(bom)}</tbody></table></div>
+    <div class="bomfoot">
+      <span class="bomcount">${bom.length} line items · grouped by category</span>
+      <button class="btn btn-xls" id="dl">⬇ Download Excel (.xlsx)</button>
+    </div>
+  </div>`;
+
+  // 5 Risks
+  const rpairs=[["Power",rk.power],["Network",rk.network],["Rack Space",rk.rackSpace],["Acoustics",rk.acoustics],["Structural",rk.structural],["Mounting",rk.mounting]];
+  html += `<div class="card block reveal" ${dl()}>
+    <div class="blabel"><span class="n">05</span> Risks &amp; Dependencies</div>
+    <div class="kv">${rpairs.map(([k,v])=>`<div class="item"><div class="k">${k}</div><div class="v" style="color:var(--ink-dim)">${esc(v)}</div></div>`).join("")}</div>
+  </div>`;
+
+  // 6 Scalability
+  html += `<div class="card block reveal" ${dl()}>
+    <div class="blabel"><span class="n">06</span> Future Scalability</div>
+    <div class="kv">
+      <div class="item"><div class="k">Expansion Options</div><div class="v" style="color:var(--ink-dim)">${esc(fs.expansionOptions)}</div></div>
+      <div class="item"><div class="k">Technology Roadmap</div><div class="v" style="color:var(--ink-dim)">${esc(fs.technologyRoadmap)}</div></div>
+    </div>
+    <div class="prose" style="margin-top:11px"><b style="color:var(--ink)">Upgrade recommendations — </b>${esc(fs.upgradeRecommendations)}</div>
+  </div>`;
+
+  // rationale
+  if(d.consultantRationale){
+    html += `<div class="card block reveal" ${dl()}>
+      <div class="blabel"><span class="n">»</span> Consultant Rationale</div>
+      <div class="prose amber">${esc(d.consultantRationale)}</div>
+    </div>`;
+  }
+
+  R.innerHTML=html; R.style.display="block";
+  document.getElementById("dl").onclick=()=>exportXlsx(d, p);
+  document.querySelector(".res-head").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+function bomRows(bom){
+  let out="", cat=null;
+  bom.forEach(it=>{
+    if((it.category||"")!==cat){ cat=it.category||""; if(cat) out+=`<tr class="cat"><td colspan="5">${esc(cat)}</td></tr>`; }
+    out+=`<tr>
+      <td>${esc(it.productDescription)}</td>
+      <td class="make">${esc(it.make)}</td>
+      <td class="model">${esc(it.model)}</td>
+      <td class="qty">${esc(it.qty)}</td>
+      <td class="rmk">${esc(it.remark)}</td></tr>`;
+  });
+  return out||`<tr><td colspan="5" style="color:var(--ink-faint)">No items returned.</td></tr>`;
+}
+
+// ---------- Excel export (exact headers: Product description | Make | Model | Qty | Remark) ----------
+function exportXlsx(d, p){
+  const bom=d.billOfMaterials||[];
+  const aoa=[["Product Description","Make","Model","Qty","Remark"]];
+  let cat=null;
+  bom.forEach(it=>{
+    if((it.category||"")!==cat){ cat=it.category||""; if(cat) aoa.push([cat.toUpperCase(),"","","",""]); }
+    aoa.push([it.productDescription||"", it.make||"", it.model||"", it.qty??"", it.remark||""]);
+  });
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"]=[{wch:58},{wch:18},{wch:26},{wch:6},{wch:40}];
+  const wb=XLSX.utils.book_new();
+  const sheet=((d.executiveSummary&&d.executiveSummary.roomType)||p.roomType||"AV BOM").slice(0,28);
+  XLSX.utils.book_append_sheet(wb, ws, sheet);
+  const safe=(sheet.replace(/[^a-z0-9]+/gi,"_")||"AV")+"_BOM";
+  XLSX.writeFile(wb, safe+".xlsx");
+}
+</script>
+</body>
+</html>
